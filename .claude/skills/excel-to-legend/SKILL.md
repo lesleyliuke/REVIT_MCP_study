@@ -1,6 +1,6 @@
 ---
 name: excel-to-legend
-description: 將 Excel 中的 worksheet 批次匯入 Revit Drafting View（或 Legend），忠實還原合併儲存格、表格框線、Excel 原始 column/row 尺寸與長文字 wrap 行為。觸發條件：使用者提到 excel 表格、excel to legend、excel to drafting、表格匯入 revit、批次匯入 excel。**預設用 import_excel_to_drafting_views 一站式命令**（最省 token，且自動處理 layout 與 wrap）。
+description: 將 Excel 中的 worksheet 批次匯入 Revit Drafting View，忠實還原合併儲存格、表格框線、Excel 原始 column/row 尺寸與長文字 wrap 行為，並在覆蓋舊 view 時自動還原所有 sheet 上的 viewport 位置。觸發條件：使用者提到 excel 表格、excel to drafting、excel to legend、表格匯入 revit、批次匯入 excel、面積計算表匯入。**永遠優先使用 `import_excel_to_drafting_views` 一站式命令**——不要先呼叫 `read_excel_tables` 再 chain `create_legends`，那是過時的多步驟模式，已被一站式命令取代。`create_legends` / `read_excel_tables` 僅在「需要 Legend View 而非 Drafting View」或「純讀取 Excel 結構不建 view」這兩種特殊情況下才使用。
 ---
 
 # Excel → Revit Drafting Views（預設流程）

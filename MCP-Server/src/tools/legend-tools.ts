@@ -4,7 +4,7 @@ export const legendTools: Tool[] = [
     {
         name: "create_legends",
         description:
-            "從 seed legend 批次複製出多個 legend 視圖。Revit API 不支援憑空建立 legend，必須先在樣板/專案中手動放置一個 seed legend（建議命名為 _SEED_BLANK）。",
+            "⚠️ 若目的是把 Excel 內容繪製到 Revit view，**請改用 `import_excel_to_drafting_views`**（一站式、自動 viewport 還原）。本工具僅複製已存在的 seed legend，**不會繪製任何內容**，使用情境僅限：(1) 需要 Legend View 而非 Drafting View 以便在多張 sheet 重複放置同份內容；(2) 純複製空白 legend 模板。從 seed legend 批次複製出多個 legend 視圖。Revit API 不支援憑空建立 legend，必須先在樣板/專案中手動放置一個 seed legend（建議命名為 _SEED_BLANK）。",
         inputSchema: {
             type: "object",
             properties: {
@@ -31,7 +31,7 @@ export const legendTools: Tool[] = [
     {
         name: "read_excel_tables",
         description:
-            "讀取 Excel 檔案中的 named table（或整張 worksheet），僅回傳落在 worksheet 列印範圍 (PrintArea) 內的儲存格內容。沒有設定列印範圍的 worksheet 會被略過。預設不傳 borders 陣列以節省 token；若需粗細資訊請傳 includeBorders=true。summary=true 模式只回每張表的維度與是否含非 Thin 邊框，適合大量 sheet 的初探階段。",
+            "⚠️ 若目的是把 Excel 內容繪製到 Revit Drafting View，**請改用 `import_excel_to_drafting_views`**（一站式命令，內部自帶 Excel 解析、layout、wrap、viewport 還原，token 省 95%+）。本工具僅用於純讀取/探索 Excel 結構，**不會建立任何 view 或畫任何元素**。讀取 Excel 檔案中的 named table（或整張 worksheet），僅回傳落在 worksheet 列印範圍 (PrintArea) 內的儲存格內容。沒有設定列印範圍的 worksheet 會被略過。預設不傳 borders 陣列以節省 token；若需粗細資訊請傳 includeBorders=true。summary=true 模式只回每張表的維度與是否含非 Thin 邊框，適合大量 sheet 的初探階段。",
         inputSchema: {
             type: "object",
             properties: {
