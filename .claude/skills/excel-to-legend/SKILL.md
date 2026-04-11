@@ -29,27 +29,59 @@ C# 內部會：
 
 **固定常數**（不開放參數，避免 token 浪費；可在 `CommandExecutor.Legend.cs` 內微調）：
 - `VIEW_SCALE = 1`（1:1，紙面 mm = model mm）
-- `TEXT_SIZE_MM = 3.0`
-- `LINE_H_MM = TEXT_SIZE_MM × 1.4 = 4.2 mm/行`
-- `EXCEL_SCALE = 1.2`（cell 在 Excel 原始 mm 基礎上放大 20%）
-- `MIN_ROW_H_MM = 5.0`，`MIN_COL_W_MM = 5.0`（保護隱藏列退化）
+- `TEXT_SIZE_MM = 2.3`
+- `LINE_H_MM = TEXT_SIZE_MM × 1.4 = 3.22 mm/行`
+- `EXCEL_SCALE = 0.92`（配合 2.3mm 文字等比縮小）
+- `MIN_ROW_H_MM = 3.8`，`MIN_COL_W_MM = 3.8`（保護隱藏列退化）
 
 **前置條件**：
 - worksheet 必須有列印範圍（沒設的會 warning 略過、Total=0、什麼都不會建）
-- 補列印範圍的最小 Python（注意 merged cell A1 不能用 `.column_letter`，要用 `get_column_letter`）：
-  ```python
-  from openpyxl import load_workbook
-  from openpyxl.utils import get_column_letter
-  wb = load_workbook(fp)
-  for name in wb.sheetnames:
-      ws = wb[name]
-      if ws.max_row and ws.max_column:
-          ws.print_area = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
-  wb.save(fp)
-  ```
 - 不需 seed view
 
+**自動補列印範圍（Auto Print Area）**：
+若 `import_excel_to_drafting_views` 回傳結果中 `Total == 0` 且 Warnings 包含「沒有設定列印範圍」，
+**不要問使用者，直接執行以下 Python 為所有缺少 print area 的 worksheet 補上 UsedRange 範圍，然後重新呼叫 import**：
+
+```python
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
+fp = r"<filePath>"  # 用使用者提供的原始路徑
+wb = load_workbook(fp)
+for name in wb.sheetnames:
+    ws = wb[name]
+    if not ws.print_area and ws.max_row and ws.max_column:
+        ws.print_area = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
+wb.save(fp)
+```
+
+流程：
+1. 第一次呼叫 `import_excel_to_drafting_views`
+2. 若回傳 Warnings 含「沒有設定列印範圍」→ 用上方 Python 自動補 print area
+3. 第二次呼叫 `import_excel_to_drafting_views`（相同參數）
+4. 若仍失敗才回報使用者
+
+注意：`get_column_letter` 是必要的（合併儲存格 A1 不能用 `.column_letter`）。
+
 **回應**（精簡）：`{Total, Created:[{name,viewId,lines,texts}], Skipped, Errors, Warnings, ViewportsRestored, ViewportFailures}`
+
+**匯入後互動：表格寬度縮放**
+
+匯入完成且確認成功後，主動詢問使用者：
+> 「表格已匯入完成。是否需要調整表格寬度比例？（例如縮小到 0.9 倍讓欄位更緊湊）」
+
+若使用者需要，使用 `scale_drafting_view_width`：
+```
+scale_drafting_view_width({
+  scaleFactor: 0.9,        // 依使用者指定的比例
+  sheetId: 目標圖紙ID      // 選填，不指定則用當前圖紙
+})
+```
+- 僅縮放 X 軸（寬度），高度不變
+- 以每個 view 的左邊緣為錨點
+- DetailCurve（表格線）和 TextNote（文字）同步縮放
+- TextNote 的 wrapping 寬度也會等比縮放
+- 內部採**逐 View 獨立 Transaction**，大量 view（20+）不會卡死 Revit
+- 縮放後可能需要重新排列視埠（用 `arrange_viewports_on_sheet`）
 
 **Viewport 自動還原**：overwrite 模式下，C# 會在 `doc.Delete(oldView)` 之前先掃描所有 sheet，
 擷取舊 view 對應的 viewport 中心點（`vp.GetBoxCenter()`，紙面座標），
@@ -74,7 +106,7 @@ C# 內部會：
 - chars → mm：`(chars × 7 + 5) × 25.4 / 96`（假設 96 DPI、Calibri 11pt 約 7px/char）
 - points → mm：`points × 25.4 / 72`
 
-`EXCEL_SCALE = 1.2` 是經驗值：大於 1.0 才讓表在 view 中視覺夠大，但又不至於佔用太多紙面。
+`EXCEL_SCALE = 0.92` 是配合 2.3mm 文字的經驗值：從原始 1.2（搭配 3.0mm 文字）等比縮小，讓表格與文字比例協調。
 
 ### 2. 文字 wrap：`TextNote.Width = mergedCellWidth`（不扣 padding）
 
@@ -162,6 +194,7 @@ text = text.Replace("\r\n", "\n").Replace("\r", "\n");
 9. **Active view = 即將被覆蓋的同名 view 才會踩雷**：Revit 不允許 `doc.Delete()` 當前 active view。判斷標準是「active view 的名字是否落在這次 import 的目標清單裡」——若 active view 是某張 sheet（即使該 sheet 上放著要被覆蓋的 viewport），或是任何不在 namingPattern 對應名單內的 view，**都不會踩雷**（實測 active view = 放著 5 張面積計算表 viewport 的 sheet，22 sheet 全部成功覆蓋 + viewport 自動還原）。只有當 active view 名字 = `namingPattern` 套用後的某個 viewName 時，才需要先 `set_active_view` 切走，否則該 sheet 會被外層 catch 歸到 `Errors`。
 10. **Viewport 自動還原（已內建）**：`doc.Delete(view)` 會連帶刪除該 view 在 sheet 上的 viewport，位置永久遺失。本工具在 delete 之前已先擷取所有相關 viewport 的中心點，重建後自動 `Viewport.Create()` 放回原位（見 `ViewportsRestored` 計數）。但 viewport 用的是「擷取時的中心點」，若新 view 內容尺寸大幅改變，可視範圍可能裁掉部分內容，必要時手動調整 viewport 邊界。
 11. **Bulk import 必 timeout，要靠 log 確認**：22 sheet + 5 viewport restore 約需 **7 分鐘**單一 Transaction，MCP client 端必定 timeout（看到 `Error: Command timed out` 是預期的，不是失敗）。確認方式：`tail "$APPDATA/RevitMCP/Logs/RevitMCP_YYYYMMDD.log"`，找到對應 RequestId 出現「已發送回應」就表示完成。完成後再呼叫 `get_viewport_map` 或 `get_all_views` 驗證結果，**不要重複呼叫 import**（會疊一個新請求進佇列、再多等 7 分鐘）。
+12. **`scale_drafting_view_width` 大量 view 必 timeout 但不會卡死**：已改為逐 View 獨立 Transaction（每個 view ~300-500 元素，commit 約 5 秒）。23 個 view 總耗時約 2 分鐘，MCP client 端會 timeout 但 Revit UI 全程保持回應。確認方式同上：`tail "$APPDATA/RevitMCP/Logs/RevitMCP_YYYYMMDD.log"`，看到 `[ScaleWidth] 完成，共處理 N 個 view` 就表示成功。**舊版（單一 Transaction 包全部 view）會導致 Revit 凍結，已於 2026-04-11 修復。**
 
 ## Token 預算參考
 

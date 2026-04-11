@@ -520,12 +520,12 @@ namespace RevitMCP.Core
 
             // 固定常數（Plan 規範）
             const int VIEW_SCALE = 1;
-            const double TEXT_SIZE_MM = 3.0;
-            const double LINE_H_MM    = TEXT_SIZE_MM * 1.4;   // 4.2mm/行
-            // 在 Excel 原始 mm 基礎上放大 20%（使表格在 view 中視覺較大）
-            const double EXCEL_SCALE = 1.2;
-            const double MIN_ROW_H_MM = 5.0;                  // 最小列高
-            const double MIN_COL_W_MM = 5.0;                  // 最小欄寬
+            const double TEXT_SIZE_MM = 2.3;
+            const double LINE_H_MM    = TEXT_SIZE_MM * 1.4;   // 3.22mm/行
+            // 在 Excel 原始 mm 基礎上縮放（配合 2.3mm 文字）
+            const double EXCEL_SCALE = 0.92;
+            const double MIN_ROW_H_MM = 3.8;                  // 最小列高
+            const double MIN_COL_W_MM = 3.8;                  // 最小欄寬
             const double MM_TO_FEET = 1.0 / 304.8;
             double textSizeFeet = TEXT_SIZE_MM * MM_TO_FEET;
 

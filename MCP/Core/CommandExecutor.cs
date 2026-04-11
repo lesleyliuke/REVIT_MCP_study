@@ -315,6 +315,18 @@ namespace RevitMCP.Core
                     case "get_viewport_map":
                         result = GetViewportMap();
                         break;
+                    case "get_sheet_viewport_details":
+                        result = GetSheetViewportDetails(parameters);
+                        break;
+                    case "arrange_viewports_on_sheet":
+                        result = ArrangeViewportsOnSheet(parameters);
+                        break;
+                    case "scale_drafting_view_width":
+                        result = ScaleDraftingViewWidth(parameters);
+                        break;
+                    case "move_text_notes_in_views":
+                        result = MoveTextNotesInViews(parameters);
+                        break;
 
                     // === Legend 模組 ===
                     case "create_legends":
