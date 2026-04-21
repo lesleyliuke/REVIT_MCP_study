@@ -195,6 +195,7 @@ text = text.Replace("\r\n", "\n").Replace("\r", "\n");
 10. **Viewport 自動還原（已內建）**：`doc.Delete(view)` 會連帶刪除該 view 在 sheet 上的 viewport，位置永久遺失。本工具在 delete 之前已先擷取所有相關 viewport 的中心點，重建後自動 `Viewport.Create()` 放回原位（見 `ViewportsRestored` 計數）。但 viewport 用的是「擷取時的中心點」，若新 view 內容尺寸大幅改變，可視範圍可能裁掉部分內容，必要時手動調整 viewport 邊界。
 11. **Bulk import 必 timeout，要靠 log 確認**：22 sheet + 5 viewport restore 約需 **7 分鐘**單一 Transaction，MCP client 端必定 timeout（看到 `Error: Command timed out` 是預期的，不是失敗）。確認方式：`tail "$APPDATA/RevitMCP/Logs/RevitMCP_YYYYMMDD.log"`，找到對應 RequestId 出現「已發送回應」就表示完成。完成後再呼叫 `get_viewport_map` 或 `get_all_views` 驗證結果，**不要重複呼叫 import**（會疊一個新請求進佇列、再多等 7 分鐘）。
 12. **`scale_drafting_view_width` 大量 view 必 timeout 但不會卡死**：已改為逐 View 獨立 Transaction（每個 view ~300-500 元素，commit 約 5 秒）。23 個 view 總耗時約 2 分鐘，MCP client 端會 timeout 但 Revit UI 全程保持回應。確認方式同上：`tail "$APPDATA/RevitMCP/Logs/RevitMCP_YYYYMMDD.log"`，看到 `[ScaleWidth] 完成，共處理 N 個 view` 就表示成功。**舊版（單一 Transaction 包全部 view）會導致 Revit 凍結，已於 2026-04-11 修復。**
+13. **浮點數精度：必須用 `GetFormattedString()` 而非 `GetString()`**：Excel 公式計算結果在底層儲存為 IEEE 754 double，例如 `169.45 - 165.25` 存的是 `4.19999999999999` 而非 `4.2`。Excel UI 用儲存格格式化遮住了精度尾巴，但 ClosedXML 的 `cell.GetString()` 會直接 `double.ToString()` 輸出原始值，導致匯入 Revit 後數值出現一堆小數點。**正確做法**：使用 `cell.GetFormattedString()`，它會套用 Excel 儲存格的數字格式（如 `0.00`、`#,##0`、`0.00%`）輸出與 Excel 畫面一致的字串。修改位置：`CommandExecutor.Legend.cs` 中 `ExtractSheet` 方法的 cell 讀取行。（2026-04-13 修復）
 
 ## Token 預算參考
 

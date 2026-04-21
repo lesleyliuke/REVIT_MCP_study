@@ -407,7 +407,7 @@ namespace RevitMCP.Core
                         if (coveredByMerge.Contains((long)r * 100000 + c))
                             rowVals.Add(string.Empty);
                         else
-                            rowVals.Add(cell?.GetString() ?? string.Empty);
+                            rowVals.Add(cell?.GetFormattedString() ?? string.Empty);
 
                         if (!includeBorders) continue;
 

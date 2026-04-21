@@ -76,4 +76,12 @@
 ## [L-013] 自動化寫入時的「靜默處理 (Silent Failure Handling)」
 
 - **避坑經驗**：修改「群組 (Group)」內元件的參數時，Revit 會強制彈出警告對話框，中斷自動化流程。
-- **實踐**：在 Transaction 中套用 IFailuresPreprocessor（如 DismissWarningsPreprocessor），自動關閉警告，確保腳本能在無人值守情況下完成批次變更。
+- **實踐**：在 Transaction 中套用 IFailuresPreprocessor，自動關閉警告，確保腳本能在無人值守情況下完成批次變更。
+- **已實作**：`MCP/Core/WarningSwallower.cs` — 吞掉所有 Warning 級別訊息，保留 Error（讓 Transaction 正常回滾）。註冊方式：
+  ```csharp
+  var opts = trans.GetFailureHandlingOptions();
+  opts.SetFailuresPreprocessor(new WarningSwallower());
+  trans.SetFailureHandlingOptions(opts);
+  ```
+  首次使用：`MCP/Core/Commands/CommandExecutor.RoomModification.cs` 的 `BatchSetRoomHeight`。
+- **進一步**：對 Group 內元件，除了吞警告外，**更乾淨的做法是進入 EditGroup 模式**（`doc.EditGroup(group)` / `doc.EndEditGroup()`）— 變更會走正規管道，自動同步到同 type 的其他 instance，且完全不產生警告。WarningSwallower 是「保底」，EditGroup 是「正解」。兩者可並用。

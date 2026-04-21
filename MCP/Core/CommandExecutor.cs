@@ -133,6 +133,10 @@ namespace RevitMCP.Core
                     case "get_rooms_by_level":
                         result = GetRoomsByLevel(parameters);
                         break;
+
+                    case "batch_set_room_height":
+                        result = BatchSetRoomHeight(parameters);
+                        break;
                     
                     case "get_all_views":
                         result = GetAllViews(parameters);
@@ -213,7 +217,15 @@ namespace RevitMCP.Core
                     case "rejoin_wall_joins":
                         result = RejoinWallJoins(parameters);
                         break;
-                    
+
+                    case "unjoin_column_joins":
+                        result = UnjoinColumnJoins(parameters);
+                        break;
+
+                    case "unjoin_element_joins":
+                        result = UnjoinElementJoins(parameters);
+                        break;
+
                     case "check_exterior_wall_openings":
                         result = CheckExteriorWallOpenings(parameters);
                         break;
@@ -370,6 +382,25 @@ namespace RevitMCP.Core
                         break;
                     case "create_dependent_views":
                         result = CreateDependentViews(parameters);
+                        break;
+
+                    // === 視圖 CropBox 模組 ===
+                    case "align_view_cropbox_to_element":
+                        result = AlignViewCropBoxToElement(parameters);
+                        break;
+                    case "shift_view_cropbox":
+                        result = ShiftViewCropBox(parameters);
+                        break;
+
+                    // === 材質批次修改模組 ===
+                    case "get_types_by_category":
+                        result = GetTypesByCategory(parameters);
+                        break;
+                    case "batch_set_material":
+                        result = BatchSetMaterial(parameters);
+                        break;
+                    case "assign_existing_material":
+                        result = AssignExistingMaterial(parameters);
                         break;
 
                     // === 牆類型與元素管理模組 ===
